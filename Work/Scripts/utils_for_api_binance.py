@@ -1,23 +1,26 @@
-import requests
-from pprint import pprint
-
 import Library.utils as utils
 from Scripts.logger import log_error, log_warning
 
+# Базовый URL для API Binance
 URL = "https://api.binance.com"
+# URL для спотового рынка
 URL_SPOT = "https://api.binance.com"
+# URL для фьючерсов с USDT
 URL_FUTURES_USDT = "https://fapi.binance.com"
+# URL для фьючерсов с COIN
 URL_FUTURES_COIN = "https://dapi.binance.com"
+# Доступные интервалы таймфреймов
 AVAILABLE_INTERVALS = ("1s", "1m", "3m", "5m", "15m", "30m",
-                       "1h", "2h", "4h", "6h", "8h", "12h",
-                       "1d", "3d", "1w", "1M")
+                      "1h", "2h", "4h", "6h", "8h", "12h",
+                      "1d", "3d", "1w", "1M")
+# Список доступных торговых пар (инициализируется позже)
 AVAILABLE_TRADING_PAIRS = None
 
 
 def send_request_processing_params(endpoint, method, params, url_full=None):
-
+    # Отправляет HTTP-запрос с обработкой параметров
     if url_full is None:
-        url_full = URL + endpoint
+        url_full = URL + endpoint  # Установка полного URL, если не указан
 
     response = utils.send_request(url_full, method, params, headers={})
 
@@ -25,20 +28,20 @@ def send_request_processing_params(endpoint, method, params, url_full=None):
 
 
 def get_available_trading_pairs():
+    # Получает список доступных торговых пар для разных типов торговли
     endpoint = "/api/v3/exchangeInfo"
     params = {}
 
     trading_pairs = dict()
+    # Получение данных для спотового рынка
     response = send_request_processing_params(endpoint, "GET", params)
-    trading_pairs['SPOT'] = [
-        item["symbol"] for item in response["symbols"]
-    ]
+    trading_pairs['SPOT'] = [item["symbol"] for item in response["symbols"]]
 
     endpoint_for_coin = "/dapi/v1/exchangeInfo"
     url_full = URL_FUTURES_COIN + endpoint_for_coin
+    # Получение данных для фьючерсов с COIN
     response = send_request_processing_params(endpoint, "GET",
                                               params, url_full)
-
     trading_pairs['FUTURES'] = [
         item["symbol"] for item in response["symbols"]
         if "PERP" not in item["symbol"]
@@ -50,6 +53,7 @@ def get_available_trading_pairs():
 
     endpoint_for_usdt = "/fapi/v1/exchangeInfo"
     url_full = URL_FUTURES_USDT + endpoint_for_usdt
+    # Получение данных для фьючерсов с USDT
     response = send_request_processing_params(endpoint, "GET",
                                               params, url_full)
     trading_pairs['FUTURES'].extend([
@@ -65,7 +69,8 @@ def get_available_trading_pairs():
 
 
 def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
-                        start: int=None, end: int=None, limit: int=None):
+                        start: int = None, end: int = None, limit: int = None):
+    # Получает данные свечей для указанной торговой пары и интервала
     endpoint = "/api/v3/klines"
     params = {
         "symbol": symbol,
@@ -73,20 +78,24 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
     }
 
     global AVAILABLE_TRADING_PAIRS
+    # Инициализация списка торговых пар, если еще не загружен
     if AVAILABLE_TRADING_PAIRS is None:
         AVAILABLE_TRADING_PAIRS = get_available_trading_pairs()
 
+    # Проверка существования торговой пары
     if symbol not in AVAILABLE_TRADING_PAIRS[type_of_trading]:
         error_message = f"Торговой пары {symbol} не существует"
         log_error(error_message)
         return None
 
+    # Проверка валидности интервала
     if interval not in AVAILABLE_INTERVALS:
         error_message = f"Интервала {interval} не существует"
         log_error(error_message)
         return None
 
     if start is not None:
+        # Проверка корректности времени начала
         if start < 0 or type(start) is not int:
             error_message = (
                 f"Неккоректное значение времени октрытия первой свечи: "
@@ -97,6 +106,7 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
         params["startTime"] = start
 
     if end is not None:
+        # Проверка корректности времени окончания
         if end < 0 or type(end) is not int:
             error_message = (
                 f"Неккоректное значение времени октрытия последней свечи: "
@@ -107,6 +117,7 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
         params["endTime"] = end
 
     if limit is not None:
+        # Проверка корректности количества свечей
         if limit < 0 or type(limit) is not int:
             error_message = (
                 f"Неккоректное значение количества свечей: "
@@ -116,19 +127,19 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
             return None
         params["limit"] = limit
 
+    # Проверка формата символа для фьючерсов
     if type_of_trading == "FUTURES" and symbol[-7] != "_":
         error_message = "Тип FUTURES требует даты справа от символа"
         log_error(error_message)
         return None
 
+    # Определение URL в зависимости от типа торговли
     if type_of_trading == "FUTURES" or type_of_trading == "FUTURES_PERP":
-
         if symbol[-4:] == "USDT" or symbol[-4:] == "USDC" or \
            symbol[-11:-7] == "USDT" or symbol[-11:-87] == "USDC":
             url_full = URL_FUTURES_USDT + "/fapi/v1/klines"
         else:
             url_full = URL_FUTURES_COIN + "/dapi/v1/klines"
-
     elif type_of_trading == "SPOT":
         url_full = URL_SPOT + "/api/v3/klines"
     else:
@@ -136,10 +147,12 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
         log_error(error_message)
         return None
 
+    # Отправка запроса к API
     response = send_request_processing_params(endpoint, "GET",
                                               params, url_full)
 
     if "error" in response:
+        # Обработка сетевой ошибки
         error_message = (
             f"Network error in get_trading_candles:"
             f"{response['message']}"
@@ -151,6 +164,7 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
         ...
 
     list_of_candles = list()
+    # Преобразование данных свечей в список кортежей
     for candle in response:
         start_time = candle[0]
         open_price = candle[1]
@@ -160,13 +174,15 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
         volume = candle[5]
         list_of_candles.append(
             (start_time, open_price, high_price,
-                low_price, close_price, volume)
-            )
+             low_price, close_price, volume)
+        )
 
+    # Сортировка свечей в порядке убывания времени
     list_of_candles.sort(reverse=True)
 
     return list_of_candles
 
 
 if __name__ == "__main__":
+    # Тест функции получения свечей для спотового рынка
     print(get_trading_candles("SPOT", "BTCUSDT", "15m", limit=5))

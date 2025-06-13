@@ -28,7 +28,7 @@ def send_request_processing_params(endpoint, method, params, url_full=None):
 
 
 def get_available_trading_pairs():
-    # Получает список доступных торговых пар для разных типов торговли
+    """ Получает список доступных торговых пар для разных типов торговли """
     endpoint = "/api/v3/exchangeInfo"
     params = {}
 
@@ -70,7 +70,7 @@ def get_available_trading_pairs():
 
 def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
                         start: int = None, end: int = None, limit: int = None):
-    # Получает данные свечей для указанной торговой пары и интервала
+    """ Получает данные свечей для указанной торговой пары и интервала """
     endpoint = "/api/v3/klines"
     params = {
         "symbol": symbol,
@@ -84,13 +84,13 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
 
     # Проверка существования торговой пары
     if symbol not in AVAILABLE_TRADING_PAIRS[type_of_trading]:
-        error_message = f"Торговой пары {symbol} не существует"
+        error_message = f"Торговой пары {symbol} не существует на Binance"
         log_error(error_message)
         return None
 
     # Проверка валидности интервала
     if interval not in AVAILABLE_INTERVALS:
-        error_message = f"Интервала {interval} не существует"
+        error_message = f"Интервала {interval} не существует на Binance"
         log_error(error_message)
         return None
 
@@ -143,7 +143,7 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
     elif type_of_trading == "SPOT":
         url_full = URL_SPOT + "/api/v3/klines"
     else:
-        error_message = "Такого типа торговли не существует"
+        error_message = "Такого типа торговли не существует на Binance"
         log_error(error_message)
         return None
 
@@ -158,10 +158,7 @@ def get_trading_candles(type_of_trading: str, symbol: str, interval: str,
             f"{response['message']}"
         )
         log_error(error_message)
-        # ВОТ СЮДА добавь код. ЕСЛИ это условие срабатывает,
-        # то нахер выходим из функции аварийно и в тг-бота пишем мол, ошибка
-        # Ее содержание доступно по response["message"]
-        ...
+        raise ConnectionError(response["message"])
 
     list_of_candles = list()
     # Преобразование данных свечей в список кортежей

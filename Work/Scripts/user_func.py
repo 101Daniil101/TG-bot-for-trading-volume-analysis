@@ -9,7 +9,7 @@ import Scripts.create_graphs as graphs
 
 
 def convert_interval(timeframe: str):
-    # Преобразует строковый таймфрейм в формат, подходящий для разных бирж
+    """ Преобразует строковый таймфрейм в формат, подходящий для разных бирж """
     mapping_bybit = {
         '1': '1', '3': '3', '5': '5', '15': '15', '30': '30',
         '60': '60', '120': '120', '240': '240', '360': '360',
@@ -35,7 +35,7 @@ def convert_interval(timeframe: str):
 
 
 def convert_trading_pair(trading_pair: str, exchange: str, type_of_trade: str):
-    # Преобразует формат торговой пары в зависимости от биржи и типа торговли
+    """ Преобразует формат торговой пары в зависимости от биржи и типа торговли """
     result = {"bybit": trading_pair.replace('/', ''),
               "okx": trading_pair.replace('/', '-'),
               "binance": trading_pair.replace('/', '')}
@@ -76,7 +76,7 @@ def convert_trading_pair(trading_pair: str, exchange: str, type_of_trade: str):
 
 def convert_type_of_trade(type_of_trade: str, trading_pair: str = '',
                           exchange: str = ''):
-    # Преобразует тип торговли в формат, подходящий для конкретной биржи
+    """ Преобразует тип торговли в формат, подходящий для конкретной биржи """
     mapping_bybit = {
         'SPOT': 'spot',
         'FUTURES': 'linear',
@@ -98,7 +98,7 @@ def convert_type_of_trade(type_of_trade: str, trading_pair: str = '',
 
 
 def fix_some_API_error(df: pd.DataFrame, type_of_trade: str):
-    # Корректирует ошибки в данных, полученных от API, в зависимости от типа торговли
+    """ Корректирует ошибки в данных, полученных от API, в зависимости от типа торговли """
     if (type_of_trade == "FUTURES"):
         df["volume"] = df["volume"] / 100
 
@@ -113,7 +113,7 @@ def fix_some_API_error(df: pd.DataFrame, type_of_trade: str):
 
 
 def candles_to_df(candles, exchange_name):
-    # Преобразует список свечей в DataFrame с указанием биржи
+    """ Преобразует список свечей в DataFrame с указанием биржи """
     df = pd.DataFrame(
         candles,
         columns=['timestamp', 'open', 'high', 'low', 'close', 'volume']
@@ -129,7 +129,7 @@ def candles_to_df(candles, exchange_name):
 
 
 def readable_time_to_ms(time_str) -> int:
-    # Преобразует читаемое время в формате ДД.ММ.ГГГГ ЧЧ:ММ в миллисекунды
+    """ Преобразует читаемое время в формате ДД.ММ.ГГГГ ЧЧ:ММ в миллисекунды """
     dt = datetime.strptime(time_str, "%d.%m.%Y %H:%M")
     milliseconds = int(dt.timestamp() * 1000)
 
@@ -181,30 +181,21 @@ def analys_based_on_trading_pair_timeframe_numbers_candles(
         type_of_trade_bybit, trading_pair_bybit,
         timeframe_bybit, limit=int(numbers_of_candles)
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Получение данных свечей для OKX
     if ((list_of_candles_okx := okx.get_trading_candles(
         trading_pair_okx, timeframe_okx,
         limit=numbers_of_candles
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Получение данных свечей для Binance
     if ((list_of_candles_binance := binance.get_trading_candles(
         type_of_trade_binance, trading_pair_binance, timeframe_binance,
         limit=int(numbers_of_candles)
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Преобразование свечей в DataFrame для каждой биржи
     df_bybit = candles_to_df(list_of_candles_bybit, 'Bybit')
@@ -282,7 +273,6 @@ def analys_based_on_trading_pair_timeframe_start_end(
 
             end_time: str - время закрытия последней свечи в формате
             ИМЕННО ТАКОМ ДД.ММ.ГГГГ ЧЧ:ММ
-            (при выборе лучше сделать через календарь конечно)
 
             То есть в результат пойдут свечи, время открытия которых больше 
             или равны start_time, но меньше или равны end_time
@@ -316,30 +306,21 @@ def analys_based_on_trading_pair_timeframe_start_end(
         type_of_trade_bybit, trading_pair_bybit,
         timeframe_bybit, start=start, end=end
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Получение данных свечей для OKX в заданном диапазоне
     if ((list_of_candles_okx := okx.get_trading_candles(
         trading_pair_okx, timeframe_okx,
         after=str(end+1), before=str(start-1)
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Получение данных свечей для Binance в заданном диапазоне
     if ((list_of_candles_binance := binance.get_trading_candles(
         type_of_trade_binance, trading_pair_binance, timeframe_binance,
         start=start, end=end
     )) is None):
-        # Сюда добавь аварийный выход и вывод ошибки в тг бота:
-        # "Ошибка валидации данных, проверьте вводимые данные.
-        # Для подробнестей обратитесь к админу"
-        ...
+        raise ValueError("Ошибка валидации данных от Bybit. Проверьте вводимые данные. Для подробностей обратитесь к админу")
 
     # Преобразование свечей в DataFrame для каждой биржи
     df_bybit = candles_to_df(list_of_candles_bybit, 'Bybit')

@@ -17,3 +17,5 @@ dist/
 *.log
 
 .vscode/
+
+config.json

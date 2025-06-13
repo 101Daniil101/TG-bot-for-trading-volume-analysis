@@ -1,6 +1,7 @@
 import Library.utils as utils
 from Scripts.logger import log_error, log_warning
 
+
 # Базовый URL для API Bybit
 URL = "https://api.bybit.com"
 # Время ожидания ответа в миллисекундах
@@ -32,20 +33,20 @@ def get_trading_candles(category: str, symbol: str,
 
     # Проверка корректности категории торговли
     if category not in ('spot', 'linear', 'inverse'):
-        error_message = f"Типа торгов {category} не существует"
+        error_message = f"Типа торгов {category} не существует на Bybit"
         log_error(error_message)
         return None
 
     # Проверка существования торговой пары
     if symbol not in AVAILABLE_TRADING_PAIRS['SPOT'] and \
        symbol not in AVAILABLE_TRADING_PAIRS['FUTURES']:
-        error_message = f"Торговой пары {symbol} не существует"
+        error_message = f"Торговой пары {symbol} не существует на Bybit"
         log_error(error_message)
         return None
 
     # Проверка валидности интервала
     if interval not in AVAILABLE_INTERVALS:
-        error_message = f"Интервала {interval} не существует"
+        error_message = f"Интервала {interval} не существует на Bybit"
         log_error(error_message)
         return None
 
@@ -99,10 +100,7 @@ def get_trading_candles(category: str, symbol: str,
             f"{response['message']}"
         )
         log_error(error_message)
-        # ВОТ СЮДА добавь код. ЕСЛИ это условие срабатывает,
-        # то нахер выходим из функции аварийно и в тг-бота пишем мол, ошибка
-        # Ее содержание доступно по response["message"]
-        ...
+        raise ConnectionError(response["message"])
 
     list_of_candles = list()
     # Преобразование данных свечей в список кортежей
@@ -122,7 +120,7 @@ def get_trading_candles(category: str, symbol: str,
 
 
 def get_available_trading_pairs():
-    # Получает список доступных торговых пар для разных категорий
+    """ Получает список доступных торговых пар для разных категорий """
     endpoint = '/v5/market/instruments-info'
     trading_pairs = dict()
 

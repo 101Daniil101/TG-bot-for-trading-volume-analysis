@@ -12,13 +12,13 @@ AVAILABLE_TRADING_PAIRS = None
 
 
 def get_okx_timestamp() -> str:
-    # Получает текущую временную метку в формате OKX (UTC)
+    """ Получает текущую временную метку в формате OKX (UTC) """
     now = datetime.utcnow()
     return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def send_request_processing_params(endpoint, method, params):
-    # Отправляет HTTP-запрос с обработкой параметров
+    """ Отправляет HTTP-запрос с обработкой параметров """
     url_full = URL + endpoint  # Формирование полного URL
     response = utils.send_request(url_full, method, params, headers={})
 
@@ -28,7 +28,7 @@ def send_request_processing_params(endpoint, method, params):
 def get_trading_candles(instId: str, bar: str,
                        after: str = None,
                        before: str = None, limit: str = None):
-    # Получает данные свечей для указанного инструмента и интервала
+    """ Получает данные свечей для указанного инструмента и интервала """
     global AVAILABLE_TRADING_PAIRS
     # Инициализация списка торговых пар, если еще не загружен
     if AVAILABLE_TRADING_PAIRS is None:
@@ -37,23 +37,23 @@ def get_trading_candles(instId: str, bar: str,
     # Проверка существования торговой пары в зависимости от типа
     if "SWAP" in instId:
         if instId not in AVAILABLE_TRADING_PAIRS["SWAP"]:
-            error_message = f"Торговой пары {instId} не существует"
+            error_message = f"Торговой пары {instId} не существует на OKX"
             log_error(error_message)
             return None
     elif instId.count("-") == 2:
         if instId not in AVAILABLE_TRADING_PAIRS["FUTURES"]:
-            error_message = f"Торговой пары {instId} не существует"
+            error_message = f"Торговой пары {instId} не существует на OKX"
             log_error(error_message)
             return None
     else:
         if instId not in AVAILABLE_TRADING_PAIRS["SPOT"]:
-            error_message = f"Торговой пары {instId} не существует"
+            error_message = f"Торговой пары {instId} не существует на OKX"
             log_error(error_message)
             return None
 
     # Проверка валидности интервала
     if bar not in AVAILABLE_INTERVALS:
-        error_message = f"Интервала {bar} не существует"
+        error_message = f"Интервала {bar} не существует на OKX"
         log_error(error_message)
         return None
 
@@ -106,10 +106,7 @@ def get_trading_candles(instId: str, bar: str,
             f"{response['message']}"
         )
         log_error(error_message)
-        # ВОТ СЮДА добавь код. ЕСЛИ это условие срабатывает,
-        # то нахер выходим из функции аварийно и в тг-бота пишем мол, ошибка
-        # Ее содержание доступно по response["message"]
-        ...
+        raise ConnectionError(response["message"])
 
     list_of_candles = list()
     # Преобразование данных свечей в список кортежей
@@ -129,7 +126,7 @@ def get_trading_candles(instId: str, bar: str,
 
 
 def get_available_trading_pairs():
-    # Получает список доступных торговых пар для разных типов инструментов
+    """ Получает список доступных торговых пар для разных типов инструментов """
     endpoint = "/api/v5/public/instruments"
     trading_pairs = dict()
 
